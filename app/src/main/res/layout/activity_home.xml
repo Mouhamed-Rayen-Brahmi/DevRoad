@@ -1,14 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background_purple">
+    android:orientation="vertical">
 
-    <ScrollView
+    <!-- Toolbar for menu -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@drawable/gradient_header"
+        app:elevation="4dp" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:background="@drawable/gradient_background_purple">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -80,45 +93,7 @@
                                 android:layout_marginStart="8dp" />
                         </LinearLayout>
 
-                        <!-- Sound Control Buttons -->
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center">
 
-                            <ImageButton
-                                android:id="@+id/music_toggle_button"
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:src="@android:drawable/ic_lock_silent_mode_off"
-                                android:tint="#FFFFFF"
-                                android:contentDescription="Toggle Music"
-                                android:padding="8dp"
-                                android:layout_marginEnd="8dp" />
-
-                            <ImageButton
-                                android:id="@+id/sound_effects_toggle_button"
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:src="@android:drawable/ic_lock_silent_mode_off"
-                                android:tint="#FFFFFF"
-                                android:contentDescription="Toggle Sound Effects"
-                                android:padding="8dp"
-                                android:layout_marginEnd="8dp" />
-
-                            <ImageButton
-                                android:id="@+id/logout_button"
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:src="@android:drawable/ic_menu_revert"
-                                android:tint="#FFFFFF"
-                                android:contentDescription="Logout"
-                                android:padding="8dp" />
-                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -153,4 +128,6 @@
         </LinearLayout>
     </ScrollView>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</LinearLayout>

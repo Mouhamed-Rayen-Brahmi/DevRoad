@@ -15,7 +15,7 @@ import com.example.devroad.R;
 
 import java.util.List;
 
-public class CoursAdapter extends RecyclerView.Adapter<CoursAdapter.CoursViewHolder> {
+public class  CoursAdapter extends RecyclerView.Adapter<CoursAdapter.CoursViewHolder> {
 
     private List<Cours> courses;
     private OnCourseClickListener listener;

@@ -2,9 +2,9 @@ package com.example.devroad;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.AnimationUtils;
-import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,19 +29,25 @@ public class HomeActivity extends AppCompatActivity {
     private TextView scoreText;
     private RecyclerView coursesRecyclerView;
     private View progressBar;
-    private ImageButton musicToggleButton;
-    private ImageButton soundEffectsToggleButton;
-    private ImageButton logoutButton;
     
     private SessionManager sessionManager;
     private SupabaseClient supabaseClient;
     private CoursAdapter coursAdapter;
     private SoundManager soundManager;
     
+    // Menu items
+    private MenuItem musicMenuItem;
+    private MenuItem soundEffectsMenuItem;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+        
+        // Set up toolbar
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setTitle("DevRoad");
         
         sessionManager = new SessionManager(this);
         supabaseClient = SupabaseClient.getInstance();
@@ -61,79 +67,9 @@ public class HomeActivity extends AppCompatActivity {
         scoreText = findViewById(R.id.score_text);
         coursesRecyclerView = findViewById(R.id.courses_recycler);
         progressBar = findViewById(R.id.progress_bar);
-        musicToggleButton = findViewById(R.id.music_toggle_button);
-        soundEffectsToggleButton = findViewById(R.id.sound_effects_toggle_button);
-        logoutButton = findViewById(R.id.logout_button);
         
         usernameText.setText("Hello, " + sessionManager.getUsername() + "!");
         scoreText.setText(sessionManager.getScore() + " pts");
-        
-        // Setup sound control buttons
-        updateSoundButtons();
-        
-        musicToggleButton.setOnClickListener(v -> {
-            soundManager.toggleMusic();
-            updateSoundButtons();
-            
-            // Visual feedback
-            v.animate()
-                    .scaleX(0.8f)
-                    .scaleY(0.8f)
-                    .setDuration(100)
-                    .withEndAction(() -> v.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(100)
-                            .start())
-                    .start();
-            
-            Toast.makeText(this, 
-                    soundManager.isMusicEnabled() ? "🎵 Music ON" : "🔇 Music OFF", 
-                    Toast.LENGTH_SHORT).show();
-        });
-        
-        soundEffectsToggleButton.setOnClickListener(v -> {
-            soundManager.toggleSoundEffects();
-            updateSoundButtons();
-            
-            // Test sound effect when enabled
-            if (soundManager.areSoundEffectsEnabled()) {
-                soundManager.playCorrectSound();
-            }
-            
-            // Visual feedback
-            v.animate()
-                    .scaleX(0.8f)
-                    .scaleY(0.8f)
-                    .setDuration(100)
-                    .withEndAction(() -> v.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(100)
-                            .start())
-                    .start();
-            
-            Toast.makeText(this, 
-                    soundManager.areSoundEffectsEnabled() ? "🔊 Effects ON" : "🔇 Effects OFF", 
-                    Toast.LENGTH_SHORT).show();
-        });
-        
-        logoutButton.setOnClickListener(v -> {
-            // Visual feedback
-            v.animate()
-                    .scaleX(0.8f)
-                    .scaleY(0.8f)
-                    .setDuration(100)
-                    .withEndAction(() -> {
-                        v.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
-                                .setDuration(100)
-                                .start();
-                        performLogout();
-                    })
-                    .start();
-        });
         
         // Animate header
         View headerCard = findViewById(R.id.header_card);
@@ -150,25 +86,95 @@ public class HomeActivity extends AppCompatActivity {
         coursesRecyclerView.setAdapter(coursAdapter);
     }
     
-    private void updateSoundButtons() {
-        // Update music button icon
-        if (soundManager.isMusicEnabled()) {
-            musicToggleButton.setImageResource(android.R.drawable.ic_lock_silent_mode_off);
-            musicToggleButton.setAlpha(1.0f);
-        } else {
-            musicToggleButton.setImageResource(android.R.drawable.ic_lock_silent_mode);
-            musicToggleButton.setAlpha(0.5f);
+    /**
+     * Inflate the options menu
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_home, menu);
+        
+        // Get menu items for later updates
+        musicMenuItem = menu.findItem(R.id.menu_music);
+        soundEffectsMenuItem = menu.findItem(R.id.menu_sound_effects);
+        
+        // Update menu item titles with current states
+        updateMenuItemTitles();
+        
+        return true;
+    }
+    
+    /**
+     * Handle menu item clicks
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        
+        if (itemId == R.id.menu_music) {
+            toggleMusic();
+            return true;
+        } else if (itemId == R.id.menu_sound_effects) {
+            toggleSoundEffects();
+            return true;
+        } else if (itemId == R.id.menu_logout) {
+            performLogout();
+            return true;
         }
         
-        // Update sound effects button icon
-        if (soundManager.areSoundEffectsEnabled()) {
-            soundEffectsToggleButton.setImageResource(android.R.drawable.ic_lock_silent_mode_off);
-            soundEffectsToggleButton.setAlpha(1.0f);
-        } else {
-            soundEffectsToggleButton.setImageResource(android.R.drawable.ic_lock_silent_mode);
-            soundEffectsToggleButton.setAlpha(0.5f);
+        return super.onOptionsItemSelected(item);
+    }
+    
+    /**
+     * Update menu item titles to reflect current state
+     */
+    private void updateMenuItemTitles() {
+        if (musicMenuItem != null) {
+            String musicState = soundManager.isMusicEnabled() ? "ON" : "OFF";
+            musicMenuItem.setTitle("Background Music: " + musicState);
+        }
+        
+        if (soundEffectsMenuItem != null) {
+            String effectsState = soundManager.areSoundEffectsEnabled() ? "ON" : "OFF";
+            soundEffectsMenuItem.setTitle("Sound Effects: " + effectsState);
         }
     }
+    
+    /**
+     * Toggle background music on/off
+     */
+    private void toggleMusic() {
+        soundManager.toggleMusic();
+        updateMenuItemTitles();
+        
+        Toast.makeText(this, 
+                soundManager.isMusicEnabled() ? "🎵 Background Music: ON" : "🔇 Background Music: OFF", 
+                Toast.LENGTH_SHORT).show();
+    }
+    
+    /**
+     * Toggle sound effects on/off
+     */
+    private void toggleSoundEffects() {
+        soundManager.toggleSoundEffects();
+        updateMenuItemTitles();
+        
+        // Play a test sound effect when enabling
+        if (soundManager.areSoundEffectsEnabled()) {
+            soundManager.playCorrectSound();
+            Toast.makeText(this, 
+                    "🔊 Sound Effects: ON", 
+                    Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, 
+                    "🔇 Sound Effects: OFF", 
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private void updateSoundButtons() {
+        // This method is no longer needed, but kept for compatibility if referenced elsewhere
+    }
+    
     
     private void loadUserData() {
         // Could fetch updated user data from Supabase here
