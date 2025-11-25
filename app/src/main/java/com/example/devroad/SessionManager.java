@@ -61,18 +61,21 @@ public class SessionManager {
     }
 
     public void logout() {
-        // Save the score before clearing
-        int currentScore = getScore();
-        
+        // Clear all session data including score
         editor.clear();
-        
-        // Restore the score after clearing
-        editor.putInt(KEY_SCORE, currentScore);
         editor.apply();
     }
 
     // Compatibility wrapper used by activities expecting clearSession()
     public void clearSession() {
         logout();
+    }
+    
+    /**
+     * Reset score to 0 (used when logging out)
+     */
+    public void resetScore() {
+        editor.putInt(KEY_SCORE, 0);
+        editor.apply();
     }
 }

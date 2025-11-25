@@ -13,9 +13,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.devroad.Models.User;
 import com.example.devroad.Supabase.SupabaseClient;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import retrofit2.Call;
@@ -239,9 +241,9 @@ public class LoginActivity extends AppCompatActivity {
                     );
 
                     supabaseClient.setAccessToken(authResponse.accessToken);
-
-                    Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
-                    navigateToMain();
+                    
+                    // Fetch user's score from database
+                    fetchUserScoreFromDatabase(authResponse.user.id);
                 } else {
                     Toast.makeText(LoginActivity.this,
                             "Login failed. Please check your credentials.",
@@ -313,5 +315,64 @@ public class LoginActivity extends AppCompatActivity {
         Intent intent = new Intent(this, HomeActivity.class);
         startActivity(intent);
         finish();
+    }
+    
+    /**
+     * Fetch user's score from the database and update SessionManager
+     */
+    private void fetchUserScoreFromDatabase(String userId) {
+        android.util.Log.d("LoginActivity", "Fetching score for user: " + userId);
+        
+        // Query users table with filter: id=eq.{userId}
+        supabaseClient.getDataApi().getUserById("eq." + userId, "id,score").enqueue(new Callback<List<User>>() {
+            @Override
+            public void onResponse(Call<List<com.example.devroad.Models.User>> call, Response<List<com.example.devroad.Models.User>> response) {
+                android.util.Log.d("LoginActivity", "Response code: " + response.code());
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    List<com.example.devroad.Models.User> users = response.body();
+                    android.util.Log.d("LoginActivity", "Users found: " + users.size());
+                    
+                    if (!users.isEmpty()) {
+                        com.example.devroad.Models.User user = users.get(0);
+                        int fetchedScore = user.getScore();
+                        android.util.Log.d("LoginActivity", "Fetched score from DB: " + fetchedScore);
+                        
+                        // Update the session with the correct score from database
+                        sessionManager.updateScore(fetchedScore);
+                        
+                        Toast.makeText(LoginActivity.this, "Login successful! Score: " + fetchedScore, Toast.LENGTH_SHORT).show();
+                        navigateToMain();
+                    } else {
+                        // No user found, set score to 0
+                        android.util.Log.w("LoginActivity", "No user data found in response, setting score to 0");
+                        sessionManager.updateScore(0);
+                        Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
+                        navigateToMain();
+                    }
+                } else {
+                    // If we can't fetch score, just proceed with 0 score
+                    try {
+                        android.util.Log.e("LoginActivity", "Failed response: " + response.code() + 
+                            " - " + response.errorBody().string());
+                    } catch (Exception e) {
+                        android.util.Log.e("LoginActivity", "Response error");
+                    }
+                    sessionManager.updateScore(0);
+                    Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
+                    navigateToMain();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<com.example.devroad.Models.User>> call, Throwable t) {
+                // If fetch fails, proceed with 0 score
+                android.util.Log.e("LoginActivity", "Error fetching score: " + t.getMessage());
+                t.printStackTrace();
+                sessionManager.updateScore(0);
+                Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
+                navigateToMain();
+            }
+        });
     }
 }

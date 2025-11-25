@@ -562,14 +562,142 @@ public class ExerciseActivity extends AppCompatActivity {
     }
     
     private void showResults() {
-        // Update user score in database and session
-        sessionManager.updateScore(sessionManager.getScore() + totalScore);
+        // Update user score in session
+        int newScore = sessionManager.getScore() + totalScore;
+        sessionManager.updateScore(newScore);
         
         Toast.makeText(this, 
                 "Exercise completed! Total score: " + totalScore + " points", 
                 Toast.LENGTH_LONG).show();
         
-        finish();
+        // Save lesson progress to database and update user score
+        saveLessonProgressAndUpdateScore(sessionManager.getUserId(), lessonId, newScore);
+    }
+    
+    /**
+     * Save lesson progress to database and update user score
+     */
+    private void saveLessonProgressAndUpdateScore(String userId, String lessonId, int newTotalScore) {
+        try {
+            SupabaseClient supabaseClient = SupabaseClient.getInstance();
+            
+            // First, check if progress already exists for this lesson
+            supabaseClient.getDataApi().getUserProgress(userId, "*").enqueue(new Callback<List<com.example.devroad.Models.UserProgress>>() {
+                @Override
+                public void onResponse(Call<List<com.example.devroad.Models.UserProgress>> call, Response<List<com.example.devroad.Models.UserProgress>> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<com.example.devroad.Models.UserProgress> progressList = response.body();
+                        
+                        // Check if this lesson progress already exists
+                        com.example.devroad.Models.UserProgress existingProgress = null;
+                        for (com.example.devroad.Models.UserProgress p : progressList) {
+                            if (p.getLessonId().equals(lessonId)) {
+                                existingProgress = p;
+                                break;
+                            }
+                        }
+                        
+                        // Create or update progress
+                        com.example.devroad.Models.UserProgress progress = new com.example.devroad.Models.UserProgress();
+                        progress.setUserId(userId);
+                        progress.setLessonId(lessonId);
+                        progress.setCompleted(true);
+                        progress.setScore(totalScore);
+                        
+                        // Post the progress (will create new or update existing via DB constraints)
+                        supabaseClient.getDataApi().createProgress(progress).enqueue(new Callback<com.example.devroad.Models.UserProgress>() {
+                            @Override
+                            public void onResponse(Call<com.example.devroad.Models.UserProgress> call, Response<com.example.devroad.Models.UserProgress> response) {
+                                if (response.isSuccessful()) {
+                                    android.util.Log.d("ExerciseActivity", "Lesson progress saved to database");
+                                    // Now update the user's total score
+                                    updateUserScoreInDatabase(userId, newTotalScore);
+                                } else {
+                                    android.util.Log.e("ExerciseActivity", "Failed to save lesson progress");
+                                    updateUserScoreInDatabase(userId, newTotalScore);
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<com.example.devroad.Models.UserProgress> call, Throwable t) {
+                                android.util.Log.e("ExerciseActivity", "Error saving lesson progress: " + t.getMessage());
+                                updateUserScoreInDatabase(userId, newTotalScore);
+                            }
+                        });
+                    } else {
+                        // If we can't fetch existing progress, just create new
+                        com.example.devroad.Models.UserProgress progress = new com.example.devroad.Models.UserProgress();
+                        progress.setUserId(userId);
+                        progress.setLessonId(lessonId);
+                        progress.setCompleted(true);
+                        progress.setScore(totalScore);
+                        
+                        supabaseClient.getDataApi().createProgress(progress).enqueue(new Callback<com.example.devroad.Models.UserProgress>() {
+                            @Override
+                            public void onResponse(Call<com.example.devroad.Models.UserProgress> call, Response<com.example.devroad.Models.UserProgress> response) {
+                                updateUserScoreInDatabase(userId, newTotalScore);
+                            }
+
+                            @Override
+                            public void onFailure(Call<com.example.devroad.Models.UserProgress> call, Throwable t) {
+                                updateUserScoreInDatabase(userId, newTotalScore);
+                            }
+                        });
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<com.example.devroad.Models.UserProgress>> call, Throwable t) {
+                    android.util.Log.e("ExerciseActivity", "Error fetching progress: " + t.getMessage());
+                    // Still try to update score even if we can't fetch progress
+                    updateUserScoreInDatabase(userId, newTotalScore);
+                }
+            });
+        } catch (Exception e) {
+            android.util.Log.e("ExerciseActivity", "Exception saving progress: " + e.getMessage());
+            finishWithDelay();
+        }
+    }
+    
+    /**
+     * Update user's score in the database
+     */
+    private void updateUserScoreInDatabase(String userId, int newTotalScore) {
+        try {
+            SupabaseClient supabaseClient = SupabaseClient.getInstance();
+            SupabaseClient.UpdateScoreRequest scoreRequest = new SupabaseClient.UpdateScoreRequest(newTotalScore);
+            
+            supabaseClient.getDataApi().updateUserScore(userId, scoreRequest).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (response.isSuccessful()) {
+                        android.util.Log.d("ExerciseActivity", "User score updated in database: " + newTotalScore);
+                    } else {
+                        android.util.Log.e("ExerciseActivity", "Failed to update user score");
+                    }
+                    finishWithDelay();
+                }
+
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    android.util.Log.e("ExerciseActivity", "Error updating user score: " + t.getMessage());
+                    finishWithDelay();
+                }
+            });
+        } catch (Exception e) {
+            android.util.Log.e("ExerciseActivity", "Exception updating score: " + e.getMessage());
+            finishWithDelay();
+        }
+    }
+    
+    /**
+     * Finish activity with a small delay to allow database operations to complete
+     */
+    private void finishWithDelay() {
+        // Give time for async database operations to complete
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            finish();
+        }, 1500);
     }
     
     // Data classes for JSON parsing

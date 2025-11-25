@@ -12,6 +12,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 
@@ -111,6 +112,9 @@ public class SupabaseClient {
     public interface SupabaseDataApi {
         @GET("rest/v1/users")
         Call<List<User>> getUser(@Query("id") String userId, @Query("select") String select);
+        
+        @GET("rest/v1/users")
+        Call<List<User>> getUserById(@Query("id") String userIdFilter, @Query("select") String select);
 
         @POST("rest/v1/users")
         Call<User> createUser(@Body User user);
@@ -133,8 +137,11 @@ public class SupabaseClient {
         @POST("rest/v1/user_progress")
         Call<UserProgress> createProgress(@Body UserProgress progress);
 
+        @PATCH("rest/v1/users")
+        Call<Void> updateUserScore(@Query("id") String userId, @Body UpdateScoreRequest request);
+        
         @POST("rest/v1/rpc/update_user_score")
-        Call<Void> updateUserScore(@Body UpdateScoreRequest request);
+        Call<Void> updateUserScoreRPC(@Body UpdateScoreRequest request);
     }
 
     // Request/Response Classes
@@ -197,15 +204,11 @@ public class SupabaseClient {
     }
 
     public static class UpdateScoreRequest {
-        @SerializedName("user_id")
-        public String userId;
+        @SerializedName("score")
+        public int score;
 
-        @SerializedName("points")
-        public int points;
-
-        public UpdateScoreRequest(String userId, int points) {
-            this.userId = userId;
-            this.points = points;
+        public UpdateScoreRequest(int score) {
+            this.score = score;
         }
     }
 }

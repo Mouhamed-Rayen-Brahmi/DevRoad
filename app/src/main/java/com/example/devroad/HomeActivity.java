@@ -69,7 +69,15 @@ public class HomeActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progress_bar);
         
         usernameText.setText("Hello, " + sessionManager.getUsername() + "!");
-        scoreText.setText(sessionManager.getScore() + " pts");
+        
+        // Initial score display (will be updated after fetch completes)
+        updateScoreDisplay();
+        
+        // Update score display after a brief delay to allow database fetch to complete
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            updateScoreDisplay();
+            android.util.Log.d("HomeActivity", "Score refreshed after delay: " + sessionManager.getScore());
+        }, 500);
         
         // Animate header
         View headerCard = findViewById(R.id.header_card);
@@ -235,10 +243,20 @@ public class HomeActivity extends AppCompatActivity {
         refreshScore();
     }
     
-    private void refreshScore() {
-        // Update score from session manager (which was updated by ExerciseActivity)
+    /**
+     * Update the score display text
+     */
+    private void updateScoreDisplay() {
         int currentScore = sessionManager.getScore();
         scoreText.setText(currentScore + " pts");
+    }
+    
+    /**
+     * Refresh score with animation
+     */
+    private void refreshScore() {
+        // Update score from session manager (which was updated by ExerciseActivity)
+        updateScoreDisplay();
         
         // Add a subtle animation to draw attention to score update
         scoreText.animate()
@@ -256,6 +274,9 @@ public class HomeActivity extends AppCompatActivity {
     private void performLogout() {
         // Stop background music
         soundManager.stopBackgroundMusic();
+        
+        // Reset score to 0 before clearing session
+        sessionManager.resetScore();
         
         // Clear session
         sessionManager.clearSession();
