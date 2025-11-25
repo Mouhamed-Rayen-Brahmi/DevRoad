@@ -666,8 +666,8 @@ public class ExerciseActivity extends AppCompatActivity {
         try {
             SupabaseClient supabaseClient = SupabaseClient.getInstance();
             SupabaseClient.UpdateScoreRequest scoreRequest = new SupabaseClient.UpdateScoreRequest(newTotalScore);
-            
-            supabaseClient.getDataApi().updateUserScore(userId, scoreRequest).enqueue(new Callback<Void>() {
+            // Use correct Supabase filter format for PATCH
+            supabaseClient.getDataApi().updateUserScore("eq." + userId, scoreRequest).enqueue(new Callback<Void>() {
                 @Override
                 public void onResponse(Call<Void> call, Response<Void> response) {
                     if (response.isSuccessful()) {
